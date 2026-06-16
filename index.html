@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nestly — Skip the meeting. Keep the momentum.</title>
+  <meta name="description" content="Nestly is the async standup tool for remote teams. Replace the daily 30-minute meeting with 3-question check-ins, auto summaries in Slack, and a team health score.">
+  <style>
+    :root {
+      --navy: #1B2B4B;
+      --coral: #E8614A;
+      --offwhite: #FAF9F7;
+      --navy-soft: rgba(27, 43, 75, 0.08);
+      --navy-mid: #44516e;
+      --coral-soft: rgba(232, 97, 74, 0.12);
+      --radius: 16px;
+      --maxw: 1120px;
+      --font: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font);
+      background: var(--offwhite);
+      color: var(--navy);
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
+
+    a { color: inherit; text-decoration: none; }
+
+    /* Buttons */
+    .btn {
+      display: inline-block;
+      font-weight: 700;
+      font-size: 16px;
+      padding: 14px 26px;
+      border-radius: 999px;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: transform .12s ease, background .15s ease, color .15s ease;
+    }
+    .btn:active { transform: translateY(1px) scale(.99); }
+    .btn-coral { background: var(--coral); color: #fff; }
+    .btn-coral:hover { background: #d24e38; }
+    .btn-ghost { background: transparent; color: var(--navy); border-color: var(--navy); }
+    .btn-ghost:hover { background: var(--navy); color: var(--offwhite); }
+    .btn-white { background: #fff; color: var(--navy); }
+    .btn-white:hover { background: #f0eee9; }
+
+    .eyebrow {
+      text-transform: uppercase;
+      letter-spacing: .14em;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--coral);
+      margin-bottom: 14px;
+    }
+
+    section { padding: 96px 0; }
+    .section-head { max-width: 640px; margin-bottom: 56px; }
+    .section-head h2 { font-size: clamp(28px, 4vw, 40px); line-height: 1.12; letter-spacing: -.02em; }
+    .section-head p { font-size: 18px; color: var(--navy-mid); margin-top: 16px; }
+
+    /* ---------- Nav ---------- */
+    header.nav {
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(250, 249, 247, 0.85);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--navy-soft);
+    }
+    .nav-inner { display: flex; align-items: center; justify-content: space-between; height: 72px; }
+    .logo { font-weight: 800; font-size: 22px; letter-spacing: -.02em; display: flex; align-items: center; gap: 9px; }
+    .logo .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--coral); display: inline-block; }
+    .nav-links { display: flex; align-items: center; gap: 30px; }
+    .nav-links a.link { font-weight: 600; font-size: 15px; color: var(--navy-mid); }
+    .nav-links a.link:hover { color: var(--navy); }
+    .nav-cta { padding: 10px 20px; font-size: 15px; }
+    @media (max-width: 800px) { .nav-links .link { display: none; } }
+
+    /* ---------- Hero ---------- */
+    .hero { padding: 88px 0 72px; }
+    .hero-grid { display: grid; grid-template-columns: 1.05fr .95fr; gap: 56px; align-items: center; }
+    .hero h1 {
+      font-size: clamp(38px, 6vw, 64px);
+      line-height: 1.04;
+      letter-spacing: -.03em;
+      font-weight: 800;
+    }
+    .hero h1 .accent { color: var(--coral); }
+    .hero .lede { font-size: 20px; color: var(--navy-mid); margin: 24px 0 34px; max-width: 520px; }
+    .hero-actions { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+    .hero-note { font-size: 14px; color: var(--navy-mid); margin-top: 18px; }
+    .hero-note strong { color: var(--navy); }
+
+    /* Hero mock: an async check-in card */
+    .mock {
+      background: #fff;
+      border-radius: 22px;
+      box-shadow: 0 30px 60px -28px rgba(27,43,75,.45);
+      border: 1px solid var(--navy-soft);
+      overflow: hidden;
+    }
+    .mock-bar { display: flex; gap: 7px; padding: 16px 18px; border-bottom: 1px solid var(--navy-soft); }
+    .mock-bar span { width: 11px; height: 11px; border-radius: 50%; background: #e2ddd4; }
+    .mock-bar span:first-child { background: var(--coral); }
+    .mock-body { padding: 22px 22px 26px; }
+    .mock-title { font-weight: 700; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+    .mock-title .pill { font-size: 11px; font-weight: 700; color: var(--coral); background: var(--coral-soft); padding: 3px 9px; border-radius: 999px; text-transform: uppercase; letter-spacing: .06em; }
+    .q { margin-top: 18px; }
+    .q .label { font-size: 12px; font-weight: 700; color: var(--navy-mid); text-transform: uppercase; letter-spacing: .07em; }
+    .q .ans { margin-top: 6px; background: var(--offwhite); border: 1px solid var(--navy-soft); border-radius: 10px; padding: 10px 13px; font-size: 14px; color: var(--navy); }
+    .q .ans.typing { color: var(--navy-mid); }
+    .mock-foot { margin-top: 20px; display: flex; justify-content: space-between; align-items: center; }
+    .mock-foot .time { font-size: 12px; color: var(--navy-mid); }
+    .mini-btn { background: var(--coral); color: #fff; font-size: 13px; font-weight: 700; padding: 8px 16px; border-radius: 999px; }
+
+    @media (max-width: 860px) {
+      .hero-grid { grid-template-columns: 1fr; gap: 44px; }
+      .mock { max-width: 460px; }
+    }
+
+    /* ---------- Problem / calendar graveyard ---------- */
+    .problem { background: var(--navy); color: var(--offwhite); }
+    .problem .section-head h2 { color: #fff; }
+    .problem .section-head p { color: #b9c1d4; }
+    .problem .eyebrow { color: #ff8a74; }
+    .problem-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: center; }
+
+    .stat-row { display: flex; gap: 34px; margin-top: 30px; flex-wrap: wrap; }
+    .stat .num { font-size: 40px; font-weight: 800; color: #ff8a74; letter-spacing: -.02em; }
+    .stat .cap { font-size: 14px; color: #b9c1d4; margin-top: 2px; }
+
+    .cal {
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: var(--radius);
+      padding: 18px;
+    }
+    .cal-head { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 8px; }
+    .cal-head div { text-align: center; font-size: 12px; font-weight: 700; color: #8d97b0; text-transform: uppercase; letter-spacing: .06em; }
+    .cal-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+    .cal-col { display: flex; flex-direction: column; gap: 8px; }
+    .slot { height: 26px; border-radius: 6px; background: rgba(255,255,255,.05); }
+    .meeting {
+      position: relative;
+      background: rgba(232,97,74,.16);
+      border: 1px dashed rgba(232,97,74,.6);
+      color: #ffb3a3;
+      font-size: 10px;
+      font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      text-align: center;
+      letter-spacing: .02em;
+      overflow: hidden;
+    }
+    .meeting span { text-decoration: line-through; opacity: .85; }
+    .cal-caption { margin-top: 14px; font-size: 13px; color: #8d97b0; text-align: center; }
+
+    @media (max-width: 860px) { .problem-grid { grid-template-columns: 1fr; gap: 40px; } }
+
+    /* ---------- How it works ---------- */
+    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; align-items: stretch; }
+    .step {
+      background: #fff; border: 1px solid var(--navy-soft); border-radius: var(--radius);
+      padding: 30px 26px; position: relative;
+    }
+    .step .n {
+      width: 42px; height: 42px; border-radius: 12px;
+      background: var(--coral-soft); color: var(--coral);
+      font-weight: 800; font-size: 19px;
+      display: flex; align-items: center; justify-content: center; margin-bottom: 18px;
+    }
+    .step h3 { font-size: 21px; letter-spacing: -.01em; }
+    .step p { color: var(--navy-mid); margin-top: 10px; font-size: 15.5px; }
+    .step .arrow {
+      position: absolute; right: -16px; top: 50%; transform: translateY(-50%);
+      color: var(--coral); font-size: 24px; font-weight: 800; z-index: 2;
+    }
+    .step:last-child .arrow { display: none; }
+    .loop-note { text-align: center; margin-top: 34px; font-size: 15px; color: var(--navy-mid); }
+    .loop-note strong { color: var(--navy); }
+    @media (max-width: 860px) {
+      .steps { grid-template-columns: 1fr; }
+      .step .arrow { right: 50%; top: auto; bottom: -22px; transform: translateX(50%) rotate(90deg); }
+    }
+
+    /* ---------- Features ---------- */
+    .features { background: #fff; }
+    .feat-small { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin-bottom: 22px; }
+    .fcard {
+      border: 1px solid var(--navy-soft); border-radius: var(--radius); padding: 28px;
+      background: var(--offwhite);
+    }
+    .fcard .ico { font-size: 26px; margin-bottom: 12px; }
+    .fcard h3 { font-size: 20px; letter-spacing: -.01em; }
+    .fcard p { color: var(--navy-mid); margin-top: 8px; font-size: 15.5px; }
+
+    .feat-deep { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+    .deep {
+      border-radius: var(--radius); padding: 32px;
+      border: 1px solid var(--navy-soft);
+      display: flex; flex-direction: column;
+    }
+    .deep.slack { background: var(--offwhite); }
+    .deep.health { background: var(--navy); color: var(--offwhite); border-color: transparent; }
+    .deep h3 { font-size: 23px; letter-spacing: -.01em; }
+    .deep .sub { font-size: 15.5px; margin-top: 8px; }
+    .deep.slack .sub { color: var(--navy-mid); }
+    .deep.health .sub { color: #b9c1d4; }
+
+    /* slack mock message */
+    .slack-msg { margin-top: 22px; background: #fff; border: 1px solid var(--navy-soft); border-radius: 14px; padding: 16px 16px 18px; }
+    .slack-top { display: flex; align-items: center; gap: 10px; }
+    .slack-avatar { width: 34px; height: 34px; border-radius: 9px; background: var(--coral); color:#fff; font-weight:800; display:flex; align-items:center; justify-content:center; font-size: 15px; }
+    .slack-name { font-weight: 800; font-size: 14px; }
+    .slack-name .app { font-size: 10px; background: var(--navy-soft); color: var(--navy-mid); padding: 2px 6px; border-radius: 4px; margin-left: 6px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+    .slack-time { font-size: 12px; color: var(--navy-mid); margin-left: 6px; font-weight: 500; }
+    .slack-body { font-size: 14px; margin-top: 10px; color: var(--navy); }
+    .slack-body b { color: var(--navy); }
+    .slack-line { margin-top: 6px; padding-left: 16px; position: relative; color: var(--navy-mid); }
+    .slack-line::before { content: ""; position: absolute; left: 0; top: 9px; width: 6px; height: 6px; border-radius: 50%; background: var(--coral); }
+
+    /* health gauge */
+    .gauge-wrap { margin-top: 26px; display: flex; align-items: center; gap: 24px; }
+    .gauge {
+      width: 132px; height: 132px; border-radius: 50%;
+      background: conic-gradient(var(--coral) 0 82%, rgba(255,255,255,.14) 82% 100%);
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .gauge-inner {
+      width: 100px; height: 100px; border-radius: 50%; background: var(--navy);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+    }
+    .gauge-inner .score { font-size: 32px; font-weight: 800; color: #fff; line-height: 1; }
+    .gauge-inner .lbl { font-size: 11px; color: #b9c1d4; text-transform: uppercase; letter-spacing: .08em; margin-top: 4px; }
+    .health-legend { font-size: 14px; }
+    .health-legend div { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; color: #cfd5e3; }
+    .health-legend .tick { color: #ff8a74; font-weight: 800; }
+
+    @media (max-width: 860px) {
+      .feat-small, .feat-deep { grid-template-columns: 1fr; }
+    }
+
+    /* ---------- Pricing ---------- */
+    .pricing { position: relative; overflow: hidden; background: linear-gradient(180deg, #f3efe8 0%, var(--offwhite) 60%); }
+    /* soft decorative glows so the section reads as its own space */
+    .pricing::before, .pricing::after { content: ""; position: absolute; border-radius: 50%; filter: blur(70px); z-index: 0; pointer-events: none; }
+    .pricing::before { width: 380px; height: 380px; background: rgba(232,97,74,.16); top: -120px; right: -80px; }
+    .pricing::after { width: 420px; height: 420px; background: rgba(27,43,75,.10); bottom: -160px; left: -100px; }
+    .pricing .wrap { position: relative; z-index: 1; }
+
+    .pricing-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; max-width: 860px; margin: 0 auto; align-items: center; }
+    .price-card {
+      background: #fff; border: 1px solid var(--navy-soft); border-radius: 22px; padding: 38px 32px 34px;
+      display: flex; flex-direction: column; position: relative;
+      box-shadow: 0 18px 40px -28px rgba(27,43,75,.35);
+      transition: transform .2s ease, box-shadow .2s ease;
+    }
+    /* accent bar across the top of each card */
+    .price-card::before {
+      content: ""; position: absolute; top: 0; left: 28px; right: 28px; height: 4px; border-radius: 0 0 4px 4px;
+      background: var(--navy-soft);
+    }
+    .price-card:hover { transform: translateY(-6px); box-shadow: 0 28px 55px -28px rgba(27,43,75,.45); }
+
+    .price-card.featured {
+      background: var(--navy); color: var(--offwhite); border-color: transparent;
+      transform: scale(1.05); z-index: 2;
+      box-shadow: 0 40px 80px -32px rgba(27,43,75,.65), 0 0 0 2px rgba(232,97,74,.5);
+    }
+    .price-card.featured::before { background: var(--coral); height: 5px; }
+    .price-card.featured:hover { transform: scale(1.05) translateY(-6px); }
+
+    .price-card .tier { font-weight: 800; font-size: 14px; text-transform: uppercase; letter-spacing: .1em; color: var(--coral); }
+    .price-card .amount { font-size: 52px; font-weight: 800; letter-spacing: -.02em; margin-top: 14px; line-height: 1; }
+    .price-card .amount span { font-size: 17px; font-weight: 600; color: var(--navy-mid); }
+    .price-card.featured .amount span { color: #b9c1d4; }
+    .price-card .who { margin-top: 8px; font-size: 15px; color: var(--navy-mid); }
+    .price-card.featured .who { color: #b9c1d4; }
+    .price-card ul { list-style: none; margin: 24px 0 28px; }
+    .price-card li { padding: 9px 0 9px 30px; position: relative; font-size: 15px; border-top: 1px solid var(--navy-soft); }
+    .price-card li:first-child { border-top: none; }
+    .price-card.featured li { border-color: rgba(255,255,255,.1); }
+    .price-card li::before {
+      content: "✓"; position: absolute; left: 0; top: 9px; color: var(--coral); font-weight: 800;
+      width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;
+    }
+    .price-card.featured li::before { color: #fff; background: var(--coral); border-radius: 50%; font-size: 11px; top: 10px; }
+    .price-card .btn { margin-top: auto; text-align: center; }
+    .badge { position: absolute; top: -14px; left: 50%; transform: translateX(-50%); background: var(--coral); color: #fff; font-size: 11px; font-weight: 800; padding: 6px 14px; border-radius: 999px; text-transform: uppercase; letter-spacing: .06em; box-shadow: 0 8px 18px -6px rgba(232,97,74,.6); white-space: nowrap; }
+
+    /* billing toggle */
+    .bill-toggle { display: flex; justify-content: center; align-items: center; gap: 14px; margin: 0 auto 44px; flex-wrap: wrap; }
+    .toggle-pill { position: relative; display: grid; grid-template-columns: 1fr 1fr; background: #fff; border: 1px solid var(--navy-soft); border-radius: 999px; padding: 5px; box-shadow: 0 10px 26px -18px rgba(27,43,75,.45); }
+    .toggle-pill button { min-width: 104px; border: none; background: transparent; font-family: inherit; font-weight: 700; font-size: 14px; padding: 10px 18px; border-radius: 999px; cursor: pointer; color: var(--navy-mid); position: relative; z-index: 1; transition: color .2s ease; }
+    .toggle-pill button.active { color: #fff; }
+    .toggle-slider { position: absolute; top: 5px; bottom: 5px; left: 5px; width: calc(50% - 5px); background: var(--navy); border-radius: 999px; transition: transform .22s ease; z-index: 0; }
+    .toggle-pill.annual .toggle-slider { transform: translateX(100%); }
+    .save-badge { background: var(--coral-soft); color: var(--coral); font-weight: 800; font-size: 12px; padding: 6px 12px; border-radius: 999px; text-transform: uppercase; letter-spacing: .05em; }
+
+    /* price number with strikethrough comparison */
+    .price-card .amount .was { font-size: 30px; font-weight: 800; text-decoration: line-through; color: var(--navy-mid); margin-right: 10px; display: none; }
+    .price-card.featured .amount .was { color: #8d97b0; }
+    .price-card .amount .now { font-size: 52px; font-weight: 800; line-height: 1; }
+    .bill-sub { font-size: 13px; color: var(--navy-mid); margin-top: 10px; }
+    .price-card.featured .bill-sub { color: #b9c1d4; }
+    .today-note { text-align: center; font-size: 13px; margin-top: 12px; color: #b9c1d4; }
+    .today-note strong { color: #ff8a74; }
+    .price-note { text-align: center; margin-top: 34px; font-size: 14px; color: var(--navy-mid); }
+    @media (max-width: 760px) {
+      .pricing-grid { grid-template-columns: 1fr; gap: 36px; }
+      .price-card.featured, .price-card.featured:hover { transform: none; }
+      .price-card.featured:hover { transform: translateY(-6px); }
+    }
+
+    /* ---------- Social proof ---------- */
+    .social { background: #fff; }
+    .quotes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+    .quote {
+      background: var(--offwhite); border: 1px solid var(--navy-soft); border-radius: var(--radius);
+      padding: 30px 26px; display: flex; flex-direction: column;
+    }
+    .quote .mark { color: var(--coral); font-size: 46px; line-height: .6; font-weight: 800; font-family: Georgia, serif; height: 26px; }
+    .quote p { font-size: 16px; margin: 8px 0 22px; }
+    .quote .who { margin-top: auto; display: flex; align-items: center; gap: 12px; }
+    .quote .av { width: 42px; height: 42px; border-radius: 50%; background: var(--navy); color: #fff; font-weight: 800; display: flex; align-items: center; justify-content: center; font-size: 15px; }
+    .quote .name { font-weight: 700; font-size: 15px; }
+    .quote .role { font-size: 13px; color: var(--navy-mid); }
+    @media (max-width: 860px) { .quotes { grid-template-columns: 1fr; } }
+
+    /* ---------- Final CTA ---------- */
+    .final { background: var(--navy); color: #fff; text-align: center; }
+    .final h2 { font-size: clamp(32px, 5vw, 52px); letter-spacing: -.02em; line-height: 1.06; }
+    .final p { color: #b9c1d4; font-size: 19px; margin: 18px auto 32px; max-width: 540px; }
+    .final .sub { font-size: 14px; color: #8d97b0; margin-top: 20px; }
+
+    /* ---------- Footer ---------- */
+    footer { background: var(--navy); color: #8d97b0; padding: 30px 0 44px; border-top: 1px solid rgba(255,255,255,.08); }
+    .foot-inner { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
+    footer .logo { color: var(--offwhite); font-size: 19px; }
+    .foot-links { display: flex; gap: 24px; font-size: 14px; }
+    .foot-links a:hover { color: var(--offwhite); }
+
+    /* ---------- Mobile optimization ---------- */
+    @media (max-width: 700px) {
+      section { padding: 64px 0; }
+      .hero { padding: 52px 0; }
+      .section-head { margin-bottom: 36px; }
+      .section-head p { font-size: 16px; }
+      .hero h1 { font-size: 34px; }
+      .hero .lede { font-size: 17px; margin: 18px 0 28px; }
+      .stat .num { font-size: 32px; }
+      .deep { padding: 26px 22px; }
+      .gauge-wrap { flex-wrap: wrap; gap: 20px; }
+      .final p { font-size: 17px; }
+      /* long CTA copy wraps as a rounded rectangle, not a giant pill */
+      .final .btn { font-size: 17px; padding: 15px 26px; border-radius: 18px; line-height: 1.35; max-width: 100%; }
+      .foot-inner { flex-direction: column; align-items: center; text-align: center; gap: 16px; }
+      .foot-links { gap: 18px; flex-wrap: wrap; justify-content: center; }
+    }
+
+    @media (max-width: 430px) {
+      .wrap { padding: 0 18px; }
+      .logo { font-size: 20px; }
+      .nav-cta { padding: 9px 14px; font-size: 14px; }
+      .hero h1 { font-size: 30px; }
+      .section-head h2 { font-size: 26px; }
+      /* stack hero buttons full-width so neither is cramped */
+      .hero-actions { flex-direction: column; align-items: stretch; }
+      .hero-actions .btn { width: 100%; text-align: center; }
+      .price-card { padding: 32px 24px 30px; }
+      .price-card .amount, .price-card .amount .now { font-size: 44px; }
+      .meeting { font-size: 9px; letter-spacing: 0; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Nav -->
+  <header class="nav">
+    <div class="wrap nav-inner">
+      <a href="#top" class="logo"><span class="dot"></span>Nestly</a>
+      <nav class="nav-links">
+        <a class="link" href="#problem">Problem</a>
+        <a class="link" href="#how">How it works</a>
+        <a class="link" href="#features">Features</a>
+        <a class="link" href="#pricing">Pricing</a>
+        <a class="btn btn-coral nav-cta" href="#cta">Get started for free</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero" id="top">
+    <div class="wrap hero-grid">
+      <div>
+        <p class="eyebrow">Async standups for remote teams</p>
+        <h1>Nobody needs a meeting<br>to say <span class="accent">&lsquo;no blockers.&rsquo;</span></h1>
+        <p class="lede">Nestly turns your daily standup into a 90-second async check-in. Your team answers three questions on their own time — Nestly handles the rest and drops the summary in Slack.</p>
+        <div class="hero-actions">
+          <a class="btn btn-coral" href="#cta">Get started for free</a>
+          <a class="btn btn-ghost" href="#how">See how it works</a>
+        </div>
+        <p class="hero-note">No credit card. Free for teams up to <strong>5 people</strong>.</p>
+      </div>
+
+      <div class="mock" aria-hidden="true">
+        <div class="mock-bar"><span></span><span></span><span></span></div>
+        <div class="mock-body">
+          <div class="mock-title">Today's check-in <span class="pill">2 min</span></div>
+          <div class="q">
+            <div class="label">What did you ship yesterday?</div>
+            <div class="ans">Closed the billing migration + reviewed 3 PRs.</div>
+          </div>
+          <div class="q">
+            <div class="label">What's on deck today?</div>
+            <div class="ans">Onboarding flow polish & the Q3 planning doc.</div>
+          </div>
+          <div class="q">
+            <div class="label">Any blockers?</div>
+            <div class="ans typing">Nope — all clear. 🎉</div>
+          </div>
+          <div class="mock-foot">
+            <span class="time">Posts to #team-standup at 9:30</span>
+            <span class="mini-btn">Submit</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Problem -->
+  <section class="problem" id="problem">
+    <div class="wrap problem-grid">
+      <div>
+        <p class="eyebrow">The problem</p>
+        <h2>Your calendar is a graveyard of daily standups.</h2>
+        <p>Fifteen minutes, they said. Then come the tangents, the "quick" follow-ups, and the five minutes everyone spends just waiting for stragglers to join. Multiply it across the week and the whole team and you've buried a serious chunk of deep work.</p>
+        <div class="stat-row">
+          <div class="stat"><div class="num">30 min</div><div class="cap">lost per person, every day</div></div>
+          <div class="stat"><div class="num">~2.5 hrs</div><div class="cap">per person, every week</div></div>
+        </div>
+      </div>
+
+      <div class="cal" aria-hidden="true">
+        <div class="cal-head"><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div></div>
+        <div class="cal-grid">
+          <div class="cal-col">
+            <div class="slot"></div>
+            <div class="meeting" style="height:40px"><span>Daily Standup</span></div>
+            <div class="slot"></div>
+            <div class="slot"></div>
+          </div>
+          <div class="cal-col">
+            <div class="slot"></div>
+            <div class="meeting" style="height:40px"><span>Daily Standup</span></div>
+            <div class="slot"></div>
+            <div class="slot"></div>
+          </div>
+          <div class="cal-col">
+            <div class="slot"></div>
+            <div class="meeting" style="height:40px"><span>Daily Standup</span></div>
+            <div class="slot"></div>
+            <div class="slot"></div>
+          </div>
+          <div class="cal-col">
+            <div class="slot"></div>
+            <div class="meeting" style="height:40px"><span>Daily Standup</span></div>
+            <div class="slot"></div>
+            <div class="slot"></div>
+          </div>
+          <div class="cal-col">
+            <div class="slot"></div>
+            <div class="meeting" style="height:40px"><span>Daily Standup</span></div>
+            <div class="slot"></div>
+            <div class="slot"></div>
+          </div>
+        </div>
+        <div class="cal-caption">R.I.P. 9:00 AM, every single day.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How it works -->
+  <section class="how" id="how">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">How it works</p>
+        <h2>One simple loop. Zero meetings.</h2>
+        <p>Nestly runs the same tight loop every day so nothing slips and nobody has to dial in.</p>
+      </div>
+      <div class="steps">
+        <div class="step">
+          <div class="n">1</div>
+          <h3>Prompt</h3>
+          <p>At a time you pick, Nestly nudges everyone with the same three questions. No app to open, no link to hunt for.</p>
+          <span class="arrow">→</span>
+        </div>
+        <div class="step">
+          <div class="n">2</div>
+          <h3>Response</h3>
+          <p>Each person answers in under two minutes, whenever it suits their morning — coffee in hand, on their own clock.</p>
+          <span class="arrow">→</span>
+        </div>
+        <div class="step">
+          <div class="n">3</div>
+          <h3>Summary</h3>
+          <p>Nestly stitches the answers into a clean digest, flags the blockers, and posts it straight to Slack.</p>
+          <span class="arrow">→</span>
+        </div>
+      </div>
+      <p class="loop-note">Then it does it again tomorrow. <strong>Prompt → Response → Summary.</strong> Forever, without a single calendar invite.</p>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="features" id="features">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">Features</p>
+        <h2>Everything the meeting did — minus the meeting.</h2>
+        <p>The visibility, the accountability, the "are we okay?" gut-check. All of it, async.</p>
+      </div>
+
+      <div class="feat-small">
+        <div class="fcard">
+          <div class="ico">✍️</div>
+          <h3>3-question check-ins</h3>
+          <p>Yesterday, today, blockers. Structured enough to be useful, short enough that people actually do it.</p>
+        </div>
+        <div class="fcard">
+          <div class="ico">⚡</div>
+          <h3>Auto summaries</h3>
+          <p>Nestly digests every response into one scannable update — so you read the room in 30 seconds, not 30 minutes.</p>
+        </div>
+      </div>
+
+      <div class="feat-deep">
+        <div class="deep slack">
+          <h3>Slack delivery</h3>
+          <p class="sub">The summary lands where your team already lives. No new tab, no new habit — just the daily digest in the channel you choose, on the schedule you set.</p>
+          <div class="slack-msg" aria-hidden="true">
+            <div class="slack-top">
+              <div class="slack-avatar">N</div>
+              <div>
+                <span class="slack-name">Nestly<span class="app">App</span></span>
+                <span class="slack-time">9:30 AM</span>
+              </div>
+            </div>
+            <div class="slack-body">
+              <b>📋 Daily Standup — #team-standup · 8 of 8 checked in</b>
+              <div class="slack-line">Shipped: billing migration, onboarding polish, 3 PRs reviewed</div>
+              <div class="slack-line">Today: Q3 planning doc, API rate-limit fix</div>
+              <div class="slack-line"><b>1 blocker:</b> Priya is waiting on design for the settings page</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="deep health">
+          <h3>Team health score</h3>
+          <p class="sub">Beyond the to-dos, Nestly reads sentiment and blocker trends to surface how your team is <em>actually</em> doing — before it shows up in a 1:1.</p>
+          <div class="gauge-wrap" aria-hidden="true">
+            <div class="gauge"><div class="gauge-inner"><div class="score">82</div><div class="lbl">Healthy</div></div></div>
+            <div class="health-legend">
+              <div><span class="tick">▲</span> Momentum up 6% this week</div>
+              <div><span class="tick">●</span> Blockers cleared in &lt; 1 day</div>
+              <div><span class="tick">●</span> Sentiment: steady &amp; positive</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pricing -->
+  <section class="pricing" id="pricing">
+    <div class="wrap">
+      <div class="section-head" style="margin-left:auto;margin-right:auto;text-align:center;">
+        <p class="eyebrow">Pricing</p>
+        <h2>Simple, transparent, no surprises.</h2>
+        <p style="margin-left:auto;margin-right:auto;">Start free. Pay only when your team grows past five.</p>
+      </div>
+
+      <div class="bill-toggle">
+        <div class="toggle-pill" id="billToggle">
+          <span class="toggle-slider"></span>
+          <button class="active" data-cycle="monthly">Monthly</button>
+          <button data-cycle="annual">Annual</button>
+        </div>
+        <span class="save-badge">Save 20%</span>
+      </div>
+
+      <div class="pricing-grid">
+        <div class="price-card">
+          <div class="tier">Free</div>
+          <div class="amount">$0 <span>/ forever</span></div>
+          <div class="who">For small teams up to 5 people.</div>
+          <ul>
+            <li>3-question daily check-ins</li>
+            <li>Auto summaries</li>
+            <li>Slack delivery</li>
+            <li>Team health score</li>
+          </ul>
+          <a class="btn btn-ghost" href="#cta">Get started for free</a>
+        </div>
+
+        <div class="price-card featured">
+          <span class="badge">Most popular</span>
+          <div class="tier">Pro</div>
+          <div class="amount"><span class="was" id="proWas">$12</span><span class="now" id="proNow">$12</span> <span>/ seat / month</span></div>
+          <div class="bill-sub" id="proBillSub">Billed monthly · cancel anytime</div>
+          <div class="who">For teams of 10–50 that have outgrown the meeting.</div>
+          <ul>
+            <li>Everything in Free</li>
+            <li>Unlimited team members</li>
+            <li>Custom prompts &amp; schedules</li>
+            <li>Health trends &amp; history</li>
+          </ul>
+          <a class="btn btn-coral" href="#cta">Start your free trial</a>
+          <div class="today-note"><strong>$0 due today</strong> · 7-day free trial</div>
+        </div>
+      </div>
+      <p class="price-note">Free for up to 5 people. $12/seat/month after that. Cancel anytime.</p>
+    </div>
+  </section>
+
+  <!-- Social proof -->
+  <section class="social" id="social">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">Social proof</p>
+        <h2>Notes from the front lines.</h2>
+        <p>Teams that ditched the daily meeting and didn't look back.</p>
+      </div>
+      <div class="quotes">
+        <div class="quote">
+          <div class="mark">“</div>
+          <p>We&rsquo;re split across five time zones, so &ldquo;daily standup&rdquo; meant someone was always dialing in at 6am or 10pm. We dropped the meeting in March. Last month our check-in completion was 94% &mdash; higher than meeting attendance ever hit.</p>
+          <div class="who">
+            <div class="av">SC</div>
+            <div><div class="name">Sarah Chen</div><div class="role">VP of Engineering, Orbit · 38-person team</div></div>
+          </div>
+        </div>
+        <div class="quote">
+          <div class="mark">“</div>
+          <p>I had one engineer who could turn &ldquo;what did you do yesterday&rdquo; into a 12-minute monologue while eight people sat muted. Now his update is three bullets I skim with my coffee. We got the 9am slot back and honestly he seems happier writing it than saying it.</p>
+          <div class="who">
+            <div class="av">MT</div>
+            <div><div class="name">Marcus Thorne</div><div class="role">Co-founder &amp; CTO, Syntax</div></div>
+          </div>
+        </div>
+        <div class="quote">
+          <div class="mark">“</div>
+          <p>The health score flagged my team trending down before I&rsquo;d noticed &mdash; three straight weeks of &ldquo;minor&rdquo; blockers I&rsquo;d been brushing off. I booked 1:1s that Thursday instead of finding out in the quarterly eng survey two months later.</p>
+          <div class="who">
+            <div class="av">ER</div>
+            <div><div class="name">Elena Rodriguez</div><div class="role">Engineering Manager, Bloom · 14 reports</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Final CTA -->
+  <section class="final" id="cta">
+    <div class="wrap">
+      <h2>Reclaim your mornings.</h2>
+      <p>Give your team back the half hour they never agreed to lose. Set up your first async standup in minutes.</p>
+      <a class="btn btn-coral" href="#top">Start your first async standup today — free.</a>
+      <div class="sub">Free for up to 5 people · No credit card required</div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="wrap foot-inner">
+      <a href="#top" class="logo"><span class="dot"></span>Nestly</a>
+      <div class="foot-links">
+        <a href="#how">How it works</a>
+        <a href="#features">Features</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#cta">Get started</a>
+      </div>
+      <div>© 2026 Nestly. Skip the meeting.</div>
+    </div>
+  </footer>
+
+  <script>
+    (function () {
+      var pill = document.getElementById("billToggle");
+      if (!pill) return;
+      var buttons = pill.querySelectorAll("button");
+      var proNow = document.getElementById("proNow");
+      var proWas = document.getElementById("proWas");
+      var proBillSub = document.getElementById("proBillSub");
+
+      function setCycle(cycle) {
+        var annual = cycle === "annual";
+        pill.classList.toggle("annual", annual);
+        buttons.forEach(function (b) {
+          b.classList.toggle("active", b.dataset.cycle === cycle);
+        });
+        if (annual) {
+          proNow.textContent = "$9.60";
+          proWas.style.display = "inline";
+          proBillSub.textContent = "Billed annually · save 20%";
+        } else {
+          proNow.textContent = "$12";
+          proWas.style.display = "none";
+          proBillSub.textContent = "Billed monthly · cancel anytime";
+        }
+      }
+
+      buttons.forEach(function (b) {
+        b.addEventListener("click", function () {
+          setCycle(b.dataset.cycle);
+        });
+      });
+    })();
+  </script>
+
+</body>
+</html>
